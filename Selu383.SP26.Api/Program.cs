@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Selu383.SP26.Api.Data;
 using Microsoft.OpenApi.Writers;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -37,11 +38,3 @@ app.Run();
 //see: https://docs.microsoft.com/en-us/aspnet/core/test/integration-tests?view=aspnetcore-8.0
 // Hi 383 - this is added so we can test our web project automatically
 public partial class Program { }
-
-public class DataContext : DbContext
-{
-    public DataContext(DbContextOptions<DataContext> options) : base(options)
-    {
-
-    }
-}
