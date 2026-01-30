@@ -12,6 +12,6 @@ namespace Selu383.SP26.Api.Data
         {
         }
 
-        public DbSet<Locations> Locations { get; set; }
+        public DbSet<Location> Locations { get; set; }
     }
 }

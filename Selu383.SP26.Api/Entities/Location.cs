@@ -1,6 +1,6 @@
 ﻿namespace Selu383.SP26.Api.Entities
 {
-    public class Locations
+    public class Location
     {
         public int Id { get; set; }
         public string? Name { get; set; }

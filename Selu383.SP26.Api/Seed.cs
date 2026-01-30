@@ -2,43 +2,26 @@
 using Microsoft.EntityFrameworkCore;
 using Selu383.SP26.Api.Data;
 using Selu383.SP26.Api.Entities;
-
-
-public class LocationSeeder
+namespace Selu383.SP26.Api
 {
-    public static async Task Initialize(DataContext context)
+    public class Seed
     {
-        if (!context.Locations.Any())
+        internal static void Initialize(DataContext dbContext)
         {
-            await SeedLocations(context);
-        }
-    }
+            dbContext.Database.Migrate();
 
-    private static async Task SeedLocations(DataContext context)
-    {
-        var seededLocations = new List<Locations>()
-        {
-            new Locations
+            if (!dbContext.Locations.Any())
             {
-                Name = "CoffeePlace1",
-                Address = "30 Epic St, Baton Rouge",
-                TableCount = 20
-            },
-            new Locations
-            {
-                Name = "CoffeePlace2",
-                Address = "5397 Main St, Hammond",
-                TableCount = 40
-            },
-            new Locations
-            {
-                Name = "CoffeePlace3",
-                Address = "1 Cool Dr, Plaquemine",
-                TableCount = 67
+                var locations = new Location[]
+                {
+                    new Location { Name = "CoffeePlace1", Address = "123 W University Ave", TableCount = 26 },
+                    new Location { Name = "CoffeePlace2", Address = "456 Palace Dr", TableCount = 30 },
+                    new Location { Name = "CoffeePlace3", Address = "789 S Range Rd", TableCount = 67 }
+                };
+
+                dbContext.Locations.AddRange(locations);
+                dbContext.SaveChanges();
             }
-        };
-
-        context.Locations.AddRange(seededLocations);
-        await context.SaveChangesAsync();
+        }
     }
 }

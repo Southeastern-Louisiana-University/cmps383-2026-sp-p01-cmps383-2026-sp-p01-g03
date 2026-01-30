@@ -10,6 +10,21 @@ namespace Selu383.SP26.Api.Controllers
     [Route("/locations")]
     public class LocationsController : ControllerBase
     {
+        static private List<Location> Location = new List<Location>
+        {
+            new Location {
+                Id = 1,
+                Name = "test1",
+                Address = "address1",
+                TableCount = 10,
+            },
+            new Location {
+                Id = 1,
+                Name = "test2",
+                Address = "address2",
+                TableCount = 20,
+            },
+        };
         private readonly ILogger<LocationsController> _logger;
         private readonly DataContext _dataContext;
 
@@ -21,12 +36,16 @@ namespace Selu383.SP26.Api.Controllers
 
 
         [HttpGet(Name = "List All")]
-        public ActionResult<List<Locations>> GetLocations()
+        public IEnumerable<Location> Get()
         {
-            var location = _dataContext.Locations.ToList();
-            return Ok(location);
+            return Enumerable.Range(1, 5).Select(index => new Location
+            {
+                Name = "test",
+                Address = "addresstest",
+                TableCount = 1
+            })
+                .ToArray();
+
         }
-
-
     }
 }
