@@ -4,14 +4,20 @@ using Selu383.SP26.Api.Data;
 using Selu383.SP26.Api.Entities;
 namespace Selu383.SP26.Api
 {
-    public class Seed
+    public class SeedLocationsInitial
     {
-        internal static void Initialize(DataContext dbContext)
+        public static async Task Initialize(DataContext dbContext)
         {
-            dbContext.Database.Migrate();
-
             if (!dbContext.Locations.Any())
             {
+                await SeedLocations(dbContext);
+            }
+        }
+
+        private static async Task SeedLocations(DataContext dbContext)
+        {
+            //dbContext.Database.Migrate(); this had to be commented out after the initial migration, probably won't work if you uncomment
+
                 var locations = new Location[]
                 {
                     new Location { Name = "CoffeePlace1", Address = "123 W University Ave", TableCount = 26 },
@@ -20,8 +26,7 @@ namespace Selu383.SP26.Api
                 };
 
                 dbContext.Locations.AddRange(locations);
-                dbContext.SaveChanges();
+                await dbContext.SaveChangesAsync();
             }
         }
     }
-}

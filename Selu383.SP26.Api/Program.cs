@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Selu383.SP26.Api.Data;
-using Microsoft.OpenApi.Writers;
 using Selu383.SP26.Api;
 
 
@@ -20,8 +19,8 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
         var db = scope.ServiceProvider.GetRequiredService<DataContext>();
-        await db.Database.EnsureCreatedAsync();
-//        Seed.Initialize(db);
+        await db.Database.MigrateAsync();
+ //       await SeedLocationsInitial.Initialize(db);
 }
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
