@@ -1,7 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Identity.Client;
 using Selu383.SP26.Api.Data;
 using Selu383.SP26.Api.Entities;
 
@@ -32,27 +30,50 @@ namespace Selu383.SP26.Api.Controllers
                     TableCount = l.TableCount
                 })
                 .ToList();
-
             return Ok(locations);
         }
 
         [HttpGet("{id}")]
-        public ActionResult<Location> GetLocationById(int id)
+        // Had to change Location entity to LocationGetDto so it matches the format returned by the list endpoint
+        public ActionResult<LocationGetDto> GetLocationById(int id)
         {
             var location = _dataContext.Locations.FirstOrDefault(l => l.Id == id);
             if (location is null)
             {
                 return NotFound();
             }
-            return Ok(location);
+            var locationDto = new LocationGetDto
+            {
+                Id = location.Id,
+                Name = location.Name,
+                Address = location.Address,
+                TableCount = location.TableCount
+            };
+            return Ok(locationDto);
         }
 
         [HttpPost]
         public ActionResult<LocationGetDto> CreateLocation(LocationCreateDto newLocationDto)
         {
-            if (!ModelState.IsValid)
+            // All four of these should replace the old sketchy validation in the Locations class, should return 400
+            if (string.IsNullOrEmpty(newLocationDto.Name))
             {
-                return BadRequest(ModelState);
+                return BadRequest("Name is required.");
+            }
+
+            if (newLocationDto.Name.Length > 120)
+            {
+                return BadRequest("Name must be 120 characters or fewer.");
+            }
+
+            if (string.IsNullOrEmpty(newLocationDto.Address))
+            {
+                return BadRequest("Address is required.");
+            }
+
+            if (newLocationDto.TableCount < 1)
+            {
+                return BadRequest("TableCount must be at least 1.");
             }
 
             // Dto -> Entity
@@ -63,15 +84,10 @@ namespace Selu383.SP26.Api.Controllers
                 TableCount = newLocationDto.TableCount
             };
 
-            if (string.IsNullOrEmpty(newLocation.Address))
-            {
-                return NotFound(ModelState);
-            }
-
             _dataContext.Locations.Add(newLocation);
             _dataContext.SaveChanges();
 
-            // Entity -> DTO
+            // Entity -> Dto
             var locationDto = new LocationGetDto
             {
                 Id = newLocation.Id,
@@ -90,6 +106,22 @@ namespace Selu383.SP26.Api.Controllers
         [HttpPut("{id}")]
         public ActionResult<LocationGetDto> UpdateLocationById(int id, LocationUpdateDto updateLocationDto)
         {
+            // Same validation logic as above
+            if (string.IsNullOrEmpty(updateLocationDto.Name))
+            {
+                return BadRequest("Name is required.");
+            }
+
+            if (updateLocationDto.Name.Length > 120)
+            {
+                return BadRequest("Name must be 120 characters or fewer.");
+            }
+
+            if (string.IsNullOrEmpty(updateLocationDto.Address))
+            {
+                return BadRequest("Address is required.");
+            }
+
             var existingLocation = _dataContext.Locations.FirstOrDefault(l => l.Id == id);
 
             if (existingLocation == null)
@@ -97,15 +129,14 @@ namespace Selu383.SP26.Api.Controllers
                 return NotFound();
             }
 
-            // Update the existing entity with new values from the DTO
+            // Update the existing entity with new values from the Dto
             existingLocation.Name = updateLocationDto.Name;
             existingLocation.Address = updateLocationDto.Address;
             existingLocation.TableCount = updateLocationDto.TableCount;
 
-            // Save the changes
             _dataContext.SaveChanges();
 
-            // Entity -> DTO mapping
+            // Entity -> Dto
             var locationDto = new LocationGetDto
             {
                 Id = existingLocation.Id,

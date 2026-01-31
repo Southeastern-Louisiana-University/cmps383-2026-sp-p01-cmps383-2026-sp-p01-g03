@@ -20,7 +20,7 @@ using (var scope = app.Services.CreateScope())
 {
         var db = scope.ServiceProvider.GetRequiredService<DataContext>();
         await db.Database.MigrateAsync();
- //       await SeedLocationsInitial.Initialize(db);
+        await SeedLocationsInitial.Initialize(db);
 }
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
