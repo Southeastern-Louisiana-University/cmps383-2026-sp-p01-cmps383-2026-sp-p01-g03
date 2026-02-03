@@ -1,0 +1,72 @@
+name: Build and Deploy to Azure Web App
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      AZURE_WEBAPP_NAME: ${{ secrets.AZURE_WEBAPP_NAME }}
+      AZURE_PUBLISH_PROFILE: ${{ secrets.AZURE_PUBLISH_PROFILE }}
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+      DB_CONN_STRING: ${{ secrets.DB_CONN_STRING }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore Selu383.SP26.sln
+
+      - name: Build
+        run: dotnet build Selu383.SP26.sln --configuration Release --no-restore
+
+      - name: Publish API
+        run: dotnet publish Selu383.SP26.Api/Selu383.SP26.Api.csproj -c Release -o ${{ runner.temp }}/publish
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ env.AZURE_PUBLISH_PROFILE }}
+          package: ${{ runner.temp }}/publish
+
+      - name: Azure Login (optional)
+        if: ${{ env.AZURE_CREDENTIALS != '' && env.AZURE_RESOURCE_GROUP != '' && env.DB_CONN_STRING != '' }}
+        uses: azure/login@v1
+        with:
+          creds: ${{ env.AZURE_CREDENTIALS }}
+
+      - name: Set ConnectionStrings:DataContext app setting
+        if: ${{ env.AZURE_CREDENTIALS != '' && env.AZURE_RESOURCE_GROUP != '' && env.DB_CONN_STRING != '' }}
+        uses: azure/cli@v1
+        with:
+          inlineScript: |
+            az webapp config appsettings set \
+              --name "$AZURE_WEBAPP_NAME" \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --settings ConnectionStrings:DataContext="$DB_CONN_STRING"
+
+      - name: Smoke test API
+        run: |
+          URL="https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/api/locations"
+          echo "Testing $URL"
+          for i in {1..10}; do
+            if curl -sSf "$URL" > /dev/null; then
+              echo "API is responding"
+              exit 0
+            fi
+            echo "Retry $i..."
+            sleep 5
+          done
+          echo "Smoke test failed"
+          exit 1
