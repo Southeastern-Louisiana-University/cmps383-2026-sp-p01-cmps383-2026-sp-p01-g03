@@ -1,19 +1,34 @@
-using System.ComponentModel.DataAnnotations;
-
-namespace Selu383.SP26.Api.Entities;
-
-public class Location
+namespace Selu383.SP26.Api.Entities
 {
-    public int Id { get; set; }
+    public class Location
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
+        public int TableCount { get; set; }
+    }
 
-    [Required]
-    [MaxLength(120)]
-    public string Name { get; set; } = string.Empty;
+    public class LocationGetDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
+        public int TableCount { get; set; }
+    }
 
-    [Required]
-    [MaxLength(200)]
-    public string Address { get; set; } = string.Empty;
+    public class LocationCreateDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
+        public int TableCount { get; set; }
+    }
 
-    [Range(1, int.MaxValue)]
-    public int TableCount { get; set; }
+    public class LocationUpdateDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
+        public int TableCount { get; set; }
+    }
 }

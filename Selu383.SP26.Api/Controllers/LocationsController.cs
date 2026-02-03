@@ -1,134 +1,166 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Selu383.SP26.Api.Data;
-using Selu383.SP26.Api.Dtos;
 using Selu383.SP26.Api.Entities;
 
-namespace Selu383.SP26.Api.Controllers;
-
-[ApiController]
-[Route("api/locations")]
-public class LocationsController : ControllerBase
+namespace Selu383.SP26.Api.Controllers
 {
-    private readonly DataContext dataContext;
-
-    public LocationsController(DataContext dataContext)
+    [ApiController]
+    [Route("/api/locations")]
+    public class LocationsController : ControllerBase
     {
-        this.dataContext = dataContext;
-    }
+        private readonly ILogger<LocationsController> _logger;
+        private readonly DataContext _dataContext;
 
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<LocationDto>>> GetLocations()
-    {
-        var locations = await dataContext.Locations
-            .AsNoTracking()
-            .OrderBy(x => x.Id)
-            .Select(x => new LocationDto
+        public LocationsController(ILogger<LocationsController> logger, DataContext dataContext)
+        {
+            _logger = logger;
+            _dataContext = dataContext;
+        }
+
+        [HttpGet]
+        public IActionResult ListAllLocations()
+        {
+            var locations = _dataContext.Locations
+                .Select(l => new LocationGetDto
+                {
+                    Id = l.Id,
+                    Name = l.Name,
+                    Address = l.Address,
+                    TableCount = l.TableCount
+                })
+                .ToList();
+            return Ok(locations);
+        }
+
+        [HttpGet("{id}")]
+        // Had to change Location entity to LocationGetDto so it matches the format returned by the list endpoint
+        public ActionResult<LocationGetDto> GetLocationById(int id)
+        {
+            var location = _dataContext.Locations.FirstOrDefault(l => l.Id == id);
+            if (location is null)
             {
-                Id = x.Id,
-                Name = x.Name,
-                Address = x.Address,
-                TableCount = x.TableCount
-            })
-            .ToListAsync();
-
-        return Ok(locations);
-    }
-
-    [HttpGet("{id:int}")]
-    public async Task<ActionResult<LocationDto>> GetLocationById(int id)
-    {
-        var location = await dataContext.Locations
-            .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == id);
-
-        if (location == null)
-        {
-            return NotFound();
+                return NotFound();
+            }
+            var locationDto = new LocationGetDto
+            {
+                Id = location.Id,
+                Name = location.Name,
+                Address = location.Address,
+                TableCount = location.TableCount
+            };
+            return Ok(locationDto);
         }
 
-        return Ok(new LocationDto
+        [HttpPost]
+        public ActionResult<LocationGetDto> CreateLocation(LocationCreateDto newLocationDto)
         {
-            Id = location.Id,
-            Name = location.Name,
-            Address = location.Address,
-            TableCount = location.TableCount
-        });
-    }
+            // All four of these should replace the old sketchy validation in the Locations class, should return 400
+            if (string.IsNullOrEmpty(newLocationDto.Name))
+            {
+                return BadRequest("Name is required.");
+            }
 
-    [HttpPost]
-    public async Task<ActionResult<LocationDto>> CreateLocation(LocationDto request)
-    {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
+            if (newLocationDto.Name.Length > 120)
+            {
+                return BadRequest("Name must be 120 characters or fewer.");
+            }
+
+            if (string.IsNullOrEmpty(newLocationDto.Address))
+            {
+                return BadRequest("Address is required.");
+            }
+
+            if (newLocationDto.TableCount < 1)
+            {
+                return BadRequest("TableCount must be at least 1.");
+            }
+
+            // Dto -> Entity
+            var newLocation = new Location
+            {
+                Name = newLocationDto.Name,
+                Address = newLocationDto.Address,
+                TableCount = newLocationDto.TableCount
+            };
+
+            _dataContext.Locations.Add(newLocation);
+            _dataContext.SaveChanges();
+
+            // Entity -> Dto
+            var locationDto = new LocationGetDto
+            {
+                Id = newLocation.Id,
+                Name = newLocation.Name,
+                Address = newLocation.Address,
+                TableCount = newLocation.TableCount
+            };
+
+            return CreatedAtAction(
+                nameof(GetLocationById),
+                new { id = locationDto.Id },
+                locationDto
+            );
         }
 
-        var entity = new Location
+        [HttpPut("{id}")]
+        public ActionResult<LocationGetDto> UpdateLocationById(int id, LocationUpdateDto updateLocationDto)
         {
-            // Id generated by database
-            Name = request.Name,
-            Address = request.Address,
-            TableCount = request.TableCount
-        };
+            // Same validation logic as above
+            if (string.IsNullOrEmpty(updateLocationDto.Name))
+            {
+                return BadRequest("Name is required.");
+            }
 
-        dataContext.Locations.Add(entity);
-        await dataContext.SaveChangesAsync();
+            if (updateLocationDto.Name.Length > 120)
+            {
+                return BadRequest("Name must be 120 characters or fewer.");
+            }
 
-        var result = new LocationDto
-        {
-            Id = entity.Id,
-            Name = entity.Name,
-            Address = entity.Address,
-            TableCount = entity.TableCount
-        };
-        return CreatedAtAction(nameof(GetLocationById), new { id = result.Id }, result);
-    }
+            if (string.IsNullOrEmpty(updateLocationDto.Address))
+            {
+                return BadRequest("Address is required.");
+            }
 
-    [HttpPut("{id:int}")]
-    public async Task<ActionResult<LocationDto>> UpdateLocation(int id, LocationDto request)
-    {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-        if (id != request.Id)
-        {
-            return BadRequest("The route id must match the payload id.");
-        }
+            var existingLocation = _dataContext.Locations.FirstOrDefault(l => l.Id == id);
 
-        var entity = await dataContext.Locations.FirstOrDefaultAsync(x => x.Id == id);
-        if (entity == null)
-        {
-            return NotFound();
-        }
+            if (existingLocation == null)
+            {
+                return NotFound();
+            }
 
-        entity.Name = request.Name;
-        entity.Address = request.Address;
-        entity.TableCount = request.TableCount;
-        await dataContext.SaveChangesAsync();
+            // Update the existing entity with new values from the Dto
+            existingLocation.Name = updateLocationDto.Name;
+            existingLocation.Address = updateLocationDto.Address;
+            existingLocation.TableCount = updateLocationDto.TableCount;
 
-        return Ok(new LocationDto
-        {
-            Id = entity.Id,
-            Name = entity.Name,
-            Address = entity.Address,
-            TableCount = entity.TableCount
-        });
-    }
+            _dataContext.SaveChanges();
 
-    [HttpDelete("{id:int}")]
-    public async Task<IActionResult> DeleteLocation(int id)
-    {
-        var entity = await dataContext.Locations.FirstOrDefaultAsync(x => x.Id == id);
-        if (entity == null)
-        {
-            return NotFound();
+            // Entity -> Dto
+            var locationDto = new LocationGetDto
+            {
+                Id = existingLocation.Id,
+                Name = existingLocation.Name,
+                Address = existingLocation.Address,
+                TableCount = existingLocation.TableCount
+            };
+
+            return Ok(locationDto);
         }
 
-        dataContext.Locations.Remove(entity);
-        await dataContext.SaveChangesAsync();
 
-        return Ok();
+        [HttpDelete("{id}")]
+        public ActionResult DeleteLocation(int id)
+        {
+            var location = _dataContext.Locations.FirstOrDefault(x => x.Id == id);
+            if (location is null)
+            {
+                return NotFound();
+            }
+            _dataContext.Locations.Remove(location);
+            _dataContext.SaveChanges();
+            return Ok();
+        }
+
     }
 }
