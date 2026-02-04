@@ -19,7 +19,16 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
         var db = scope.ServiceProvider.GetRequiredService<DataContext>();
-        await db.Database.MigrateAsync();
+        var hasMigrations = db.Database.GetMigrations().Any();
+        if (hasMigrations)
+        {
+            await db.Database.MigrateAsync();
+        }
+        else
+        {
+            await db.Database.EnsureCreatedAsync();
+        }
+
         await SeedLocationsInitial.Initialize(db);
 }
 // Configure the HTTP request pipeline.
