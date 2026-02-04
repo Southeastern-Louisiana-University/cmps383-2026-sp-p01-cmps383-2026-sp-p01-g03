@@ -1,4 +1,4 @@
-﻿namespace Selu383.SP26.Api.Entities
+﻿ namespace Selu383.SP26.Api.Entities
 {
     public class Location
     {
